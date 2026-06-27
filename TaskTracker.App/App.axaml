@@ -1,0 +1,177 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TaskTracker.App.App"
+             RequestedThemeVariant="Light">
+  <Application.Styles>
+    <FluentTheme />
+    <Style Selector="Window">
+      <Setter Property="FontFamily" Value="Segoe UI, SF Pro Text, Helvetica Neue, Arial" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Background" Value="#EFF8FF" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="Background" Value="#DFF1FF" />
+      <Setter Property="BorderBrush" Value="#AFD8F6" />
+      <Setter Property="Foreground" Value="#173B57" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button:pointerover">
+      <Setter Property="Background" Value="#CBE8FF" />
+      <Setter Property="BorderBrush" Value="#8CCAF3" />
+    </Style>
+    <Style Selector="Button:pressed">
+      <Setter Property="Background" Value="#B7DCFA" />
+      <Setter Property="BorderBrush" Value="#6BB6EA" />
+    </Style>
+    <Style Selector="ToggleButton">
+      <Setter Property="Background" Value="#E9F6FF" />
+      <Setter Property="BorderBrush" Value="#AFD8F6" />
+      <Setter Property="Foreground" Value="#173B57" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="ToggleButton:pointerover">
+      <Setter Property="Background" Value="#D5EDFF" />
+      <Setter Property="BorderBrush" Value="#8CCAF3" />
+    </Style>
+    <Style Selector="ToggleButton:checked">
+      <Setter Property="Background" Value="#9ED5FA" />
+      <Setter Property="BorderBrush" Value="#4CA8E8" />
+      <Setter Property="Foreground" Value="#0D3554" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="#F8FCFF" />
+      <Setter Property="BorderBrush" Value="#B9DAF4" />
+      <Setter Property="Foreground" Value="#173B57" />
+      <Setter Property="CaretBrush" Value="#173B57" />
+      <Setter Property="SelectionBrush" Value="#94D4FF" />
+      <Setter Property="SelectionForegroundBrush" Value="#0D3554" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.14" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.14" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="TextBox:focus">
+      <Setter Property="BorderBrush" Value="#4CA8E8" />
+      <Setter Property="Background" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="ListBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="ScrollViewer.IsScrollInertiaEnabled" Value="True" />
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Margin" Value="4,2" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Foreground" Value="#173B57" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.14" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.14" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="ListBoxItem /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.16" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.16" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="ListBoxItem:pointerover">
+      <Setter Property="Background" Value="#E0F2FE" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#E0F2FE" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBoxItem:selected">
+      <Setter Property="Background" Value="#BFE4FF" />
+      <Setter Property="Foreground" Value="#0D3554" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="#BFE4FF" />
+      <Setter Property="BorderBrush" Value="#8CCAF3" />
+    </Style>
+    <Style Selector="ListBoxItem:selected:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#AEDCFF" />
+      <Setter Property="BorderBrush" Value="#7BC1F0" />
+    </Style>
+    <Style Selector="MenuItem">
+      <Setter Property="Foreground" Value="#173B57" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="MenuItem /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.14" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="MenuItem:pointerover">
+      <Setter Property="Background" Value="#DFF1FF" />
+    </Style>
+    <Style Selector="MenuItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#DFF1FF" />
+    </Style>
+    <Style Selector="CheckBox">
+      <Setter Property="Foreground" Value="#173B57" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.12" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="ScrollBar">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.16" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="ScrollBar /template/ Thumb">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.16" />
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.16" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.16" />
+        </Transitions>
+      </Setter>
+    </Style>
+  </Application.Styles>
+</Application>

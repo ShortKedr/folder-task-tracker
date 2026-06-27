@@ -1,0 +1,39 @@
+# Build output
+bin/
+obj/
+publish/
+artifacts/
+buildcheck*/
+
+# Local .NET/NuGet caches
+.dotnet/
+.nuget/
+*.nupkg
+*.snupkg
+
+# Visual Studio and IDE state
+.vs/
+.vscode/
+.idea/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Test and coverage output
+TestResults/
+coverage/
+coverage*/
+*.coverage
+*.coveragexml
+*.trx
+
+# Logs and crash dumps
+*.log
+*.dmp
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

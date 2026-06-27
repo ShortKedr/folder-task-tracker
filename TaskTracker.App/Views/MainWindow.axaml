@@ -1,0 +1,136 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TaskTracker.App.Views.MainWindow"
+        Title="Folder Task Tracker"
+        Width="860"
+        Height="560"
+        MinWidth="460"
+        MinHeight="340"
+        Topmost="{Binding IsAlwaysOnTop}">
+  <DockPanel>
+    <Menu DockPanel.Dock="Top">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open Folder..." Command="{Binding OpenFolderCommand}" />
+        <Separator />
+        <MenuItem Header="_Create Group" Command="{Binding CreateGroupCommand}" />
+        <MenuItem Header="_Rename Group" Command="{Binding RenameGroupCommand}" />
+        <MenuItem Header="_Delete Group" Command="{Binding DeleteGroupCommand}" />
+      </MenuItem>
+      <MenuItem Header="_Tools">
+        <MenuItem Header="{Binding StatusBarMenuText}"
+                  Command="{Binding ToggleStatusBarCommand}" />
+      </MenuItem>
+    </Menu>
+
+    <Border DockPanel.Dock="Top" Background="#F6FBFF" BorderBrush="#B9DAF4" BorderThickness="0,0,0,1" Padding="10,8">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <Button Grid.Column="0" Content="+ Group" Command="{Binding CreateGroupCommand}" Margin="0,0,8,0" />
+        <Button Grid.Column="2"
+                Content="Folder"
+                Command="{Binding OpenDataFolderCommand}" />
+        <ToggleButton Grid.Column="3"
+                      Margin="8,0,0,0"
+                      Content="Always on top"
+                      IsChecked="{Binding IsAlwaysOnTop, Mode=TwoWay}" />
+      </Grid>
+    </Border>
+
+    <TextBlock DockPanel.Dock="Bottom"
+               IsVisible="{Binding IsStatusBarVisible}"
+               Text="{Binding StatusMessage}"
+               Foreground="#426276"
+               Background="#F6FBFF"
+               Padding="10,6"
+               TextTrimming="CharacterEllipsis" />
+
+    <Grid ColumnDefinitions="220,*">
+      <Border Grid.Column="0" Background="#F3FAFF" BorderBrush="#B9DAF4" BorderThickness="0,0,1,0" Padding="8">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top"
+                     Text="Groups"
+                     Foreground="#173B57"
+                     FontWeight="SemiBold"
+                     Margin="8,4,8,6" />
+          <ListBox ItemsSource="{Binding Groups}"
+                   SelectedItem="{Binding SelectedGroup, Mode=TwoWay}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Grid.Column="0"
+                             Text="{Binding Name}"
+                             FontWeight="SemiBold"
+                             TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="1"
+                             Margin="8,0,0,0"
+                             Text="{Binding OpenCount}"
+                             Foreground="#426276" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+
+      <Grid Grid.Column="1"
+            RowDefinitions="*"
+            Margin="10">
+        <Border Grid.Row="0"
+                Background="#FBFDFF"
+                BorderBrush="#B9DAF4"
+                BorderThickness="1"
+                CornerRadius="8">
+          <DockPanel>
+            <Grid DockPanel.Dock="Top"
+                  ColumnDefinitions="*,Auto,Auto,Auto,Auto"
+                  Margin="12,10,12,6">
+              <TextBlock Grid.Column="0"
+                         Text="{Binding SelectedGroup.Name}"
+                         Foreground="#173B57"
+                         FontSize="16"
+                         FontWeight="SemiBold"
+                         TextTrimming="CharacterEllipsis" />
+              <Button Grid.Column="1" Content="Rename" Command="{Binding RenameGroupCommand}" Margin="8,0,0,0" />
+              <Button Grid.Column="2" Content="+ Task" Command="{Binding AddTaskCommand}" Margin="8,0,0,0" />
+              <Button Grid.Column="3" Content="Delete Task" Command="{Binding DeleteTaskCommand}" Margin="8,0,0,0" />
+              <Button Grid.Column="4" Content="Delete Group" Command="{Binding DeleteGroupCommand}" Margin="8,0,0,0" />
+            </Grid>
+
+            <ListBox x:Name="TasksListBox"
+                     ItemsSource="{Binding SelectedGroup.Tasks}"
+                     SelectedItem="{Binding SelectedTask, Mode=TwoWay}"
+                     Margin="6"
+                     ScrollViewer.IsScrollInertiaEnabled="True">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto"
+                        MinHeight="32">
+                    <CheckBox Grid.Column="0"
+                              IsChecked="{Binding IsDone, Mode=TwoWay}"
+                              VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Spacing="1">
+                      <TextBlock Text="{Binding Title}"
+                                 FontWeight="SemiBold"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding StatusText}"
+                                 Foreground="#426276"
+                                 FontSize="11" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2"
+                               Margin="8,0,0,0"
+                               Text="{Binding DisplaySchedule}"
+                               Foreground="#426276"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="3"
+                            Margin="8,0,0,0"
+                            Content="Edit"
+                            Click="EditTaskClick" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+      </Grid>
+    </Grid>
+  </DockPanel>
+</Window>

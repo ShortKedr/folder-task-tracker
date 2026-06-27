@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="TaskTracker.App.Views.TaskEditorWindow"
+        Width="500"
+        Height="340"
+        MinWidth="460"
+        MinHeight="300"
+        WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" Margin="16">
+    <TextBlock x:Name="TitleText"
+               Grid.Row="0"
+               FontWeight="SemiBold"
+               FontSize="16" />
+
+    <TextBox x:Name="TitleBox"
+             Grid.Row="1"
+             Margin="0,14,0,8"
+             Watermark="Task name"
+             MaxLength="100" />
+
+    <Grid Grid.Row="2" ColumnDefinitions="260,*">
+      <DatePicker x:Name="DateBox"
+                  Grid.Column="0"
+                  Margin="0,0,10,8"
+                  MinWidth="250" />
+      <TextBox x:Name="TimeBox"
+               Grid.Column="1"
+               Margin="0,0,0,8"
+               Watermark="HH:mm"
+               MinWidth="96"
+               MaxLength="5" />
+    </Grid>
+
+    <TextBox x:Name="DescriptionBox"
+             Grid.Row="3"
+             Watermark="Description"
+             MaxLength="500"
+             AcceptsReturn="True"
+             TextWrapping="Wrap" />
+
+    <TextBlock x:Name="ErrorText"
+               Grid.Row="4"
+               Margin="0,8,0,0"
+               Foreground="#B42318"
+               TextWrapping="Wrap" />
+
+    <StackPanel Grid.Row="5"
+                Margin="0,12,0,0"
+                Orientation="Horizontal"
+                HorizontalAlignment="Right"
+                Spacing="8">
+      <Button Content="Cancel" Click="CancelClick" />
+      <Button Content="Save" Click="SaveClick" />
+    </StackPanel>
+  </Grid>
+</Window>
