@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\TaskTracker.App\TaskTracker.App.csproj" />
     <ProjectReference Include="..\TaskTracker.Core\TaskTracker.Core.csproj" />
+    <ProjectReference Include="..\TaskTracker.UiRuntime\TaskTracker.UiRuntime.csproj" />
   </ItemGroup>
 
 </Project>

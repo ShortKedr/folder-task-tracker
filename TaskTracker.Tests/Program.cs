@@ -1,6 +1,8 @@
+using SkiaSharp;
 using TaskTracker.Core.Models;
 using TaskTracker.Core.Storage;
 using TaskTracker.App.ViewModels;
+using TaskTracker.UiRuntime;
 using TaskStatus = TaskTracker.Core.Models.TaskStatus;
 
 var tests = new (string Name, Action Run)[]
@@ -14,7 +16,20 @@ var tests = new (string Name, Action Run)[]
     ("undo restores previous task version", UndoRestoresPreviousTaskVersion),
     ("redo reapplies undone task version", RedoReappliesUndoneTaskVersion),
     ("task history keeps last fifty actions", TaskHistoryKeepsLastFiftyActions),
-    ("completed task sorting stays visual", CompletedTaskSortingStaysVisual)
+    ("completed task sorting stays visual", CompletedTaskSortingStaysVisual),
+    ("runtime yoga adapter lays out flex children", RuntimeYogaAdapterLaysOutFlexChildren),
+    ("runtime scroll physics converges and clamps", RuntimeScrollPhysicsConvergesAndClamps),
+    ("runtime scroll edge space is reserved outside viewport", RuntimeScrollEdgeSpaceIsReservedOutsideViewport),
+    ("runtime scroll edge space is not interactive content", RuntimeScrollEdgeSpaceIsNotInteractiveContent),
+    ("runtime wheel bubbles from child to scroll view", RuntimeWheelBubblesFromChildToScrollView),
+    ("runtime text input handles focus and typing", RuntimeTextInputHandlesFocusAndTyping),
+    ("runtime text input handles keyboard shortcuts", RuntimeTextInputHandlesKeyboardShortcuts),
+    ("runtime text input consumes editing shortcuts", RuntimeTextInputConsumesEditingShortcuts),
+    ("runtime key region receives root shortcuts", RuntimeKeyRegionReceivesRootShortcuts),
+    ("runtime used child click stops parent propagation", RuntimeUsedChildClickStopsParentPropagation),
+    ("runtime button click survives rebuild between pointer events", RuntimeButtonClickSurvivesRebuildBetweenPointerEvents),
+    ("runtime liquid glass modal captures backdrop input", RuntimeLiquidGlassModalCapturesBackdropInput),
+    ("runtime shader effect compiles sksl", RuntimeShaderEffectCompilesSksl)
 };
 
 var passed = 0;
@@ -232,6 +247,269 @@ static void CompletedTaskSortingStaysVisual()
 
     AssertTaskOrder(viewModel, "First", "Middle", "Last");
     AssertModelOrder(group, "First", "Middle", "Last");
+}
+
+static void RuntimeYogaAdapterLaysOutFlexChildren()
+{
+    var root = new YogaLayoutNode(width: 320, height: 240);
+    var fixedChild = new YogaLayoutNode(height: 40);
+    var flexChild = new YogaLayoutNode(flexGrow: 1);
+
+    root.Add(fixedChild);
+    root.Add(flexChild);
+    root.Calculate(320, 240);
+
+    AssertEqual(40f, fixedChild.Layout.Height);
+    AssertEqual(200f, flexChild.Layout.Height);
+    AssertEqual(40f, flexChild.Layout.Y);
+}
+
+static void RuntimeScrollPhysicsConvergesAndClamps()
+{
+    var physics = new SmoothScrollPhysics { WheelStep = 100, Responsiveness = 20 };
+    var metrics = new ScrollMetrics(Viewport: 100, Extent: 320, Offset: 0);
+
+    var target = physics.ApplyWheel(metrics, currentTarget: 0, wheelDelta: -10);
+    AssertEqual(220f, target);
+
+    var current = 0f;
+    for (var index = 0; index < 40; index++)
+    {
+        current = physics.Step(metrics, current, target, 1.0 / 60.0);
+    }
+
+    AssertTrue(current > 200, "Smooth scroll should converge toward the target.");
+    AssertEqual(0f, physics.ApplyWheel(metrics, currentTarget: 0, wheelDelta: 10));
+}
+
+static void RuntimeScrollEdgeSpaceIsReservedOutsideViewport()
+{
+    using var temp = TempFolder.Create();
+    var controller = new ScrollController();
+    using var window = new UiWindow(new UiWindowOptions("scroll reserved edge test", 240, 100));
+    window.SetRoot(new ScrollView(
+        new ListView<int>(
+            Enumerable.Range(0, 4),
+            index => new Button($"Row {index}", () => { }),
+            spacing: 4),
+        controller,
+        new ScrollBehavior(
+            new SmoothScrollPhysics { WheelStep = 100 },
+            new ScrollEdgeShaderEffect(edgeSize: 20, bendStrength: 0.4f))));
+
+    window.RenderToPng(Path.Combine(temp.Path, "scroll-reserved-edge.png"), 240, 100);
+    window.SendWheel(20, 50, -100);
+
+    AssertEqual(72f, controller.TargetOffset);
+}
+
+static void RuntimeScrollEdgeSpaceIsNotInteractiveContent()
+{
+    using var temp = TempFolder.Create();
+    var clicks = 0;
+    using var window = new UiWindow(new UiWindowOptions("scroll edge hit test", 240, 100));
+    window.SetRoot(new ScrollView(
+        new ListView<int>(
+            Enumerable.Range(0, 4),
+            index => new Button($"Row {index}", () => clicks++),
+            spacing: 4),
+        behavior: new ScrollBehavior(
+            new SmoothScrollPhysics(),
+            new ScrollEdgeShaderEffect(edgeSize: 20, bendStrength: 0.4f))));
+
+    window.RenderToPng(Path.Combine(temp.Path, "scroll-edge-hit-test.png"), 240, 100);
+    window.SendPointerDown(20, 30);
+    window.SendPointerUp(20, 30);
+    window.SendPointerDown(20, 90);
+    window.SendPointerUp(20, 90);
+
+    AssertEqual(1, clicks);
+}
+
+static void RuntimeWheelBubblesFromChildToScrollView()
+{
+    using var temp = TempFolder.Create();
+    var controller = new ScrollController();
+    using var window = new UiWindow(new UiWindowOptions("scroll test", 240, 100));
+    window.SetRoot(new ScrollView(
+        new ListView<int>(
+            Enumerable.Range(0, 12),
+            index => new Button($"Row {index}", () => { }),
+            spacing: 4),
+        controller,
+        new ScrollBehavior(new SmoothScrollPhysics { WheelStep = 40 })));
+
+    window.RenderToPng(Path.Combine(temp.Path, "scroll-before.png"), 240, 100);
+    window.SendWheel(20, 20, -1);
+
+    AssertTrue(controller.TargetOffset > 0, "Wheel over a child button should scroll its parent scroll view.");
+}
+
+static void RuntimeTextInputHandlesFocusAndTyping()
+{
+    using var temp = TempFolder.Create();
+    var controller = new TextInputController();
+    using var window = new UiWindow(new UiWindowOptions("input test", 240, 80));
+    window.SetRoot(new Box(
+        padding: new UiThickness(8),
+        child: new TextInput(controller)));
+
+    window.RenderToPng(Path.Combine(temp.Path, "input.png"), 240, 80);
+    window.SendPointerDown(20, 20);
+    window.SendTextInput("abc");
+    window.SendKeyDown(UiKey.Backspace);
+
+    AssertEqual("ab", controller.Text);
+}
+
+static void RuntimeTextInputHandlesKeyboardShortcuts()
+{
+    using var temp = TempFolder.Create();
+    var controller = new TextInputController();
+    using var window = new UiWindow(new UiWindowOptions("input shortcuts test", 240, 80));
+    window.SetRoot(new Box(
+        padding: new UiThickness(8),
+        child: new TextInput(controller)));
+
+    window.RenderToPng(Path.Combine(temp.Path, "input-shortcuts.png"), 240, 80);
+    window.SendPointerDown(20, 20);
+    window.SendTextInput("abc");
+    window.SendKeyDown(UiKey.Z, UiKeyModifiers.Control);
+    AssertEqual("", controller.Text);
+
+    window.SendKeyDown(UiKey.Y, UiKeyModifiers.Control);
+    AssertEqual("abc", controller.Text);
+
+    window.SendKeyDown(UiKey.A, UiKeyModifiers.Control);
+    window.SendTextInput("x");
+    AssertEqual("x", controller.Text);
+}
+
+static void RuntimeTextInputConsumesEditingShortcuts()
+{
+    using var temp = TempFolder.Create();
+    var controller = new TextInputController();
+    var rootUndoCount = 0;
+    using var window = new UiWindow(new UiWindowOptions("input shortcut routing test", 240, 80));
+    window.SetRoot(new KeyRegion(
+        new Box(
+            padding: new UiThickness(8),
+            child: new TextInput(controller)),
+        key =>
+        {
+            if (key.Key is UiKey.Z && key.HasControl)
+            {
+                rootUndoCount++;
+            }
+        }));
+
+    window.RenderToPng(Path.Combine(temp.Path, "input-shortcut-routing.png"), 240, 80);
+    window.SendPointerDown(20, 20);
+    window.SendTextInput("abc");
+    window.SendKeyDown(UiKey.Z, UiKeyModifiers.Control);
+
+    AssertEqual("", controller.Text);
+    AssertEqual(0, rootUndoCount);
+}
+
+static void RuntimeKeyRegionReceivesRootShortcuts()
+{
+    using var temp = TempFolder.Create();
+    var shortcutCount = 0;
+    using var window = new UiWindow(new UiWindowOptions("key region test", 240, 80));
+    window.SetRoot(new KeyRegion(
+        new Box(width: 240, height: 80),
+        key =>
+        {
+            if (key.Key is UiKey.Z && key.HasControl)
+            {
+                shortcutCount++;
+                key.Use();
+            }
+        }));
+
+    window.RenderToPng(Path.Combine(temp.Path, "key-region.png"), 240, 80);
+    window.SendKeyDown(UiKey.Z, UiKeyModifiers.Control);
+
+    AssertEqual(1, shortcutCount);
+}
+
+static void RuntimeUsedChildClickStopsParentPropagation()
+{
+    using var temp = TempFolder.Create();
+    var childClicks = 0;
+    var parentClicks = 0;
+    using var window = new UiWindow(new UiWindowOptions("event propagation test", 240, 80));
+    window.SetRoot(new TapRegion(
+        new Box(
+            padding: new UiThickness(8),
+            child: new Button("Child", () => childClicks++)),
+        () => parentClicks++));
+
+    window.RenderToPng(Path.Combine(temp.Path, "event-propagation.png"), 240, 80);
+    window.SendPointerDown(20, 20);
+    window.SendPointerUp(20, 20);
+
+    AssertEqual(1, childClicks);
+    AssertEqual(0, parentClicks);
+}
+
+static void RuntimeButtonClickSurvivesRebuildBetweenPointerEvents()
+{
+    using var temp = TempFolder.Create();
+    var clicks = 0;
+    using var window = new UiWindow(new UiWindowOptions("button test", 240, 80));
+    window.SetRoot(new Box(
+        padding: new UiThickness(8),
+        child: new Button("Click", () => clicks++)));
+
+    window.RenderToPng(Path.Combine(temp.Path, "button-before.png"), 240, 80);
+    window.SendPointerDown(20, 20);
+    window.RenderToPng(Path.Combine(temp.Path, "button-rebuilt.png"), 240, 80);
+    window.SendPointerUp(20, 20);
+
+    AssertEqual(1, clicks);
+}
+
+static void RuntimeLiquidGlassModalCapturesBackdropInput()
+{
+    using var temp = TempFolder.Create();
+    var backdropClicks = 0;
+    var dialogClicks = 0;
+    using var window = new UiWindow(new UiWindowOptions("liquid glass modal test", 240, 160));
+    window.SetRoot(new LiquidGlassModal(
+        new TapRegion(
+            new Box(background: SKColor.Parse("#DFF1FF")),
+            () => backdropClicks++),
+        new Button("OK", () => dialogClicks++),
+        new LiquidGlassStyle
+        {
+            MaxWidth = 120,
+            MaxHeight = 80,
+            Margin = 12,
+            Padding = new UiThickness(14),
+            BlurPasses = 1
+        }));
+
+    window.RenderToPng(Path.Combine(temp.Path, "liquid-glass-modal.png"), 240, 160);
+    window.SendPointerDown(8, 8);
+    window.SendPointerUp(8, 8);
+    window.SendPointerDown(120, 80);
+    window.SendPointerUp(120, 80);
+
+    AssertEqual(0, backdropClicks);
+    AssertEqual(1, dialogClicks);
+}
+
+static void RuntimeShaderEffectCompilesSksl()
+{
+    using var effect = new RuntimeShaderEffect("""
+half4 main(float2 coord) {
+    return half4(coord.x * 0.0 + 1.0, 1.0, 1.0, 1.0);
+}
+""");
+
+    effect.Set("unused", 1f);
 }
 
 static (GroupFileStore Store, MainWindowViewModel ViewModel) CreateHistoryViewModel(string path)
