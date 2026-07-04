@@ -10,9 +10,20 @@ public sealed class GroupFileStore
         WriteIndented = true
     };
 
+    private readonly IGroupStorage _storage;
     private string? _folderPath;
 
     public string? FolderPath => _folderPath;
+
+    public GroupFileStore()
+        : this(new FileSystemGroupStorage())
+    {
+    }
+
+    public GroupFileStore(IGroupStorage storage)
+    {
+        _storage = storage;
+    }
 
     public void OpenFolder(string folderPath)
     {
@@ -21,7 +32,7 @@ public sealed class GroupFileStore
             throw new ArgumentException("Folder path cannot be empty.", nameof(folderPath));
         }
 
-        Directory.CreateDirectory(folderPath);
+        _storage.OpenFolder(folderPath);
         _folderPath = folderPath;
     }
 
@@ -32,15 +43,15 @@ public sealed class GroupFileStore
         var groups = new List<TaskGroup>();
         var errors = new List<string>();
 
-        foreach (var filePath in Directory.EnumerateFiles(_folderPath!, $"*{GroupFileNames.Extension}").OrderBy(static p => p, StringComparer.OrdinalIgnoreCase))
+        foreach (var file in _storage.EnumerateFiles(GroupFileNames.Extension).OrderBy(static file => file.Name, StringComparer.OrdinalIgnoreCase))
         {
             try
             {
-                using var stream = File.OpenRead(filePath);
+                using var stream = _storage.OpenRead(file);
                 var group = JsonSerializer.Deserialize<TaskGroup>(stream, JsonOptions);
                 if (group is null)
                 {
-                    errors.Add($"{Path.GetFileName(filePath)}: empty group file.");
+                    errors.Add($"{file.Name}: empty group file.");
                     continue;
                 }
 
@@ -49,7 +60,7 @@ public sealed class GroupFileStore
             }
             catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
             {
-                errors.Add($"{Path.GetFileName(filePath)}: {ex.Message}");
+                errors.Add($"{file.Name}: {ex.Message}");
             }
         }
 
@@ -83,9 +94,9 @@ public sealed class GroupFileStore
             TaskValidation.ValidateTask(task);
         }
 
-        var targetPath = GetPath(group);
-        WriteAtomically(targetPath, group);
-        DeleteStaleGroupFiles(group.Id, targetPath);
+        var fileName = GroupFileNames.BuildFileName(group.Name, group.Id);
+        WriteGroup(fileName, group);
+        DeleteStaleGroupFiles(group.Id, fileName);
     }
 
     public void RenameGroup(TaskGroup group, string newName)
@@ -100,9 +111,9 @@ public sealed class GroupFileStore
         if (oldPath is not null)
         {
             var currentPath = GetPath(group);
-            if (!string.Equals(oldPath, currentPath, StringComparison.OrdinalIgnoreCase) && File.Exists(oldPath))
+            if (!string.Equals(oldPath.Path, currentPath, StringComparison.OrdinalIgnoreCase))
             {
-                File.Delete(oldPath);
+                _storage.Delete(oldPath);
             }
         }
     }
@@ -110,10 +121,10 @@ public sealed class GroupFileStore
     public void DeleteGroup(TaskGroup group)
     {
         EnsureOpen();
-        var existingPath = FindExistingPath(group.Id) ?? GetPath(group);
-        if (File.Exists(existingPath))
+        var existingFile = FindExistingPath(group.Id);
+        if (existingFile is not null)
         {
-            File.Delete(existingPath);
+            _storage.Delete(existingFile);
         }
     }
 
@@ -121,25 +132,25 @@ public sealed class GroupFileStore
     {
         EnsureOpen();
         var fileName = GroupFileNames.BuildFileName(group.Name, group.Id);
-        return Path.Combine(_folderPath!, fileName);
+        return _storage.GetPath(fileName);
     }
 
-    private void DeleteStaleGroupFiles(string groupId, string currentPath)
+    private void DeleteStaleGroupFiles(string groupId, string currentFileName)
     {
-        foreach (var filePath in Directory.EnumerateFiles(_folderPath!, $"*{GroupFileNames.Extension}"))
+        foreach (var file in _storage.EnumerateFiles(GroupFileNames.Extension))
         {
-            if (string.Equals(filePath, currentPath, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(file.Name, currentFileName, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
             try
             {
-                using var stream = File.OpenRead(filePath);
+                using var stream = _storage.OpenRead(file);
                 var group = JsonSerializer.Deserialize<TaskGroup>(stream, JsonOptions);
                 if (group?.Id == groupId)
                 {
-                    File.Delete(filePath);
+                    _storage.Delete(file);
                 }
             }
             catch
@@ -149,17 +160,17 @@ public sealed class GroupFileStore
         }
     }
 
-    private string? FindExistingPath(string groupId)
+    private GroupStorageFile? FindExistingPath(string groupId)
     {
-        foreach (var filePath in Directory.EnumerateFiles(_folderPath!, $"*{GroupFileNames.Extension}"))
+        foreach (var file in _storage.EnumerateFiles(GroupFileNames.Extension))
         {
             try
             {
-                using var stream = File.OpenRead(filePath);
+                using var stream = _storage.OpenRead(file);
                 var group = JsonSerializer.Deserialize<TaskGroup>(stream, JsonOptions);
                 if (group?.Id == groupId)
                 {
-                    return filePath;
+                    return file;
                 }
             }
             catch
@@ -171,29 +182,10 @@ public sealed class GroupFileStore
         return null;
     }
 
-    private static void WriteAtomically(string targetPath, TaskGroup group)
+    private void WriteGroup(string fileName, TaskGroup group)
     {
-        var directory = Path.GetDirectoryName(targetPath)!;
-        Directory.CreateDirectory(directory);
-
-        var tempPath = Path.Combine(directory, $"{Path.GetFileName(targetPath)}.{Guid.NewGuid():N}.tmp");
         var json = JsonSerializer.SerializeToUtf8Bytes(group, JsonOptions);
-        File.WriteAllBytes(tempPath, json);
-
-        if (!File.Exists(targetPath))
-        {
-            File.Move(tempPath, targetPath);
-            return;
-        }
-
-        try
-        {
-            File.Replace(tempPath, targetPath, null);
-        }
-        catch (Exception ex) when (ex is IOException or PlatformNotSupportedException or UnauthorizedAccessException)
-        {
-            File.Move(tempPath, targetPath, true);
-        }
+        _storage.WriteAllBytes(fileName, json);
     }
 
     private static void Normalize(TaskGroup group)

@@ -2,6 +2,7 @@ using SkiaSharp;
 using TaskTracker.Core.Models;
 using TaskTracker.Core.Storage;
 using TaskTracker.App.ViewModels;
+using TaskTracker.Presentation.Services;
 using TaskTracker.UiRuntime;
 using TaskStatus = TaskTracker.Core.Models.TaskStatus;
 
@@ -12,6 +13,8 @@ var tests = new (string Name, Action Run)[]
     ("validates task limits", ValidatesTaskLimits),
     ("saves changed group file", SavesChangedGroupFile),
     ("builds safe file names", BuildsSafeFileNames),
+    ("builds app-private storage paths", BuildsAppPrivateStoragePaths),
+    ("settings preserve last group and scroll offsets", SettingsPreserveLastGroupAndScrollOffsets),
     ("skips broken json files", SkipsBrokenJsonFiles),
     ("undo restores previous task version", UndoRestoresPreviousTaskVersion),
     ("redo reapplies undone task version", RedoReappliesUndoneTaskVersion),
@@ -150,6 +153,36 @@ static void BuildsSafeFileNames()
 
     var fallback = GroupFileNames.BuildFileName("///", "12345678");
     AssertEqual("group-12345678.group.json", fallback);
+}
+
+static void BuildsAppPrivateStoragePaths()
+{
+    var paths = AppStoragePaths.FromBaseFolder(Path.Combine("root", "FolderTaskTracker"));
+
+    AssertEqual(Path.Combine("root", "FolderTaskTracker", "groups"), paths.DataFolderPath);
+    AssertEqual(Path.Combine("root", "FolderTaskTracker", "settings.json"), paths.SettingsPath);
+    AssertThrows<ArgumentException>(() => AppStoragePaths.FromBaseFolder(""));
+}
+
+static void SettingsPreserveLastGroupAndScrollOffsets()
+{
+    using var temp = TempFolder.Create();
+    var settings = new UserSettingsStore(Path.Combine(temp.Path, "settings.json"));
+
+    settings.SaveLastFolder(Path.Combine(temp.Path, "first"));
+    settings.SaveLastGroupId("group-a");
+    settings.SaveGroupScrollOffset("group-a", 123.5);
+    settings.SaveGroupScrollOffset("group-b", 42);
+    settings.SaveLastFolder(Path.Combine(temp.Path, "second"));
+
+    AssertEqual(Path.Combine(temp.Path, "second"), settings.LoadLastFolder());
+    AssertEqual("group-a", settings.LoadLastGroupId());
+    AssertEqual(123.5, settings.LoadGroupScrollOffset("group-a"));
+    AssertEqual(42, settings.LoadGroupScrollOffset("group-b"));
+
+    settings.RemoveGroupScrollOffset("group-a");
+    AssertEqual(0d, settings.LoadGroupScrollOffset("group-a"));
+    AssertEqual(42, settings.LoadGroupScrollOffset("group-b"));
 }
 
 static void SkipsBrokenJsonFiles()

@@ -9,12 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ViewModels\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.0.10" />
     <PackageReference Include="Avalonia.Desktop" Version="11.0.10" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.10" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\TaskTracker.Presentation\TaskTracker.Presentation.csproj" />
     <ProjectReference Include="..\TaskTracker.Core\TaskTracker.Core.csproj" />
   </ItemGroup>
 

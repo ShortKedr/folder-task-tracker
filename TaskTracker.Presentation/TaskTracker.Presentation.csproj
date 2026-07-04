@@ -1,16 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\TaskTracker.App\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TaskTracker.Core\TaskTracker.Core.csproj" />
-    <ProjectReference Include="..\TaskTracker.Presentation\TaskTracker.Presentation.csproj" />
-    <ProjectReference Include="..\TaskTracker.UiRuntime\TaskTracker.UiRuntime.csproj" />
   </ItemGroup>
 
 </Project>

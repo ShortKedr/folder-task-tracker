@@ -31,7 +31,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         AddTaskCommand = new RelayCommand(async () => await AddTaskAsync(), () => SelectedGroup is not null);
         DeleteTaskCommand = new RelayCommand(DeleteTask, () => SelectedGroup is not null && SelectedTask is not null);
         OpenFolderCommand = new RelayCommand(async () => await OpenFolderFromPickerAsync());
-        OpenDataFolderCommand = new RelayCommand(OpenDataFolder, () => !string.IsNullOrWhiteSpace(FolderPath));
+        OpenDataFolderCommand = new RelayCommand(async () => await OpenDataFolder(), () => !string.IsNullOrWhiteSpace(FolderPath));
         ToggleStatusBarCommand = new RelayCommand(() => IsStatusBarVisible = !IsStatusBarVisible);
         UndoTaskCommand = new RelayCommand(UndoLastTaskChange, () => _undoHistory.Count > 0);
         RedoTaskCommand = new RelayCommand(RedoLastTaskChange, () => _redoHistory.Count > 0);
@@ -43,6 +43,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     public Func<string, string?, Task<string?>>? RequestTextAsync { get; set; }
     public Func<string, TaskItem?, Task<TaskEditResult?>>? RequestTaskEditAsync { get; set; }
     public Func<string, Task>? ShowErrorAsync { get; set; }
+    public Func<string, Task>? OpenDataFolderAsync { get; set; }
 
     public RelayCommand CreateGroupCommand { get; }
     public RelayCommand RenameGroupCommand { get; }
@@ -63,6 +64,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             if (SetProperty(ref _selectedGroup, value))
             {
                 SelectedTask = value?.Tasks.FirstOrDefault();
+                _settings.SaveLastGroupId(value?.Model.Id);
                 RaiseCommandStates();
             }
         }
@@ -121,13 +123,35 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public bool HasSelectedTask => SelectedTask is not null;
 
+    public double GetTaskScrollOffset(TaskGroupViewModel? group)
+    {
+        return group is null ? 0 : _settings.LoadGroupScrollOffset(group.Model.Id);
+    }
+
+    public void SaveTaskScrollOffset(TaskGroupViewModel? group, double offset)
+    {
+        if (group is null)
+        {
+            return;
+        }
+
+        _settings.SaveGroupScrollOffset(group.Model.Id, offset);
+    }
+
     public async Task InitializeAsync()
     {
         var lastFolder = _settings.LoadLastFolder();
-        if (!string.IsNullOrWhiteSpace(lastFolder) && Directory.Exists(lastFolder))
+        if (!string.IsNullOrWhiteSpace(lastFolder))
         {
-            OpenFolder(lastFolder);
-            return;
+            try
+            {
+                OpenFolder(lastFolder);
+                return;
+            }
+            catch
+            {
+                StatusMessage = "Saved folder could not be opened.";
+            }
         }
 
         await OpenFolderFromPickerAsync();
@@ -206,6 +230,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         var group = SelectedGroup;
         _store.DeleteGroup(group.Model);
+        _settings.RemoveGroupScrollOffset(group.Model.Id);
         Groups.Remove(group);
         SelectedGroup = Groups.FirstOrDefault();
         StatusMessage = "Group deleted.";
@@ -315,7 +340,10 @@ public sealed class MainWindowViewModel : ViewModelBase
             Groups.Add(CreateGroupViewModel(group));
         }
 
-        SelectedGroup = Groups.FirstOrDefault();
+        var lastGroupId = _settings.LoadLastGroupId();
+        SelectedGroup = string.IsNullOrWhiteSpace(lastGroupId)
+            ? Groups.FirstOrDefault()
+            : Groups.FirstOrDefault(group => group.Model.Id == lastGroupId) ?? Groups.FirstOrDefault();
         StatusMessage = result.Errors.Count == 0
             ? "Folder opened."
             : $"Opened with {result.Errors.Count} skipped file(s).";
@@ -326,9 +354,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void OpenDataFolder()
+    private async Task OpenDataFolder()
     {
-        if (string.IsNullOrWhiteSpace(FolderPath) || !Directory.Exists(FolderPath))
+        if (string.IsNullOrWhiteSpace(FolderPath))
         {
             StatusMessage = "No data folder selected.";
             return;
@@ -336,6 +364,13 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         try
         {
+            if (OpenDataFolderAsync is not null)
+            {
+                await OpenDataFolderAsync(FolderPath);
+                StatusMessage = "Folder opened.";
+                return;
+            }
+
             ProcessStartInfo startInfo;
             if (OperatingSystem.IsWindows())
             {

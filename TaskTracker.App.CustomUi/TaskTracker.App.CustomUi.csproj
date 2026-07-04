@@ -2,11 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TaskTracker.Core\TaskTracker.Core.csproj" />
+    <ProjectReference Include="..\TaskTracker.Presentation\TaskTracker.Presentation.csproj" />
     <ProjectReference Include="..\TaskTracker.UiRuntime\TaskTracker.UiRuntime.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="..\TaskTracker.App\ViewModels\*.cs" Link="ViewModels\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <PropertyGroup>
